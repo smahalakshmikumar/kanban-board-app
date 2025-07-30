@@ -4,7 +4,7 @@ export type Task = {
     id: string;
     title: string;
     description: string;
-    comments: string;
+    comments: Comment[];
 };
 
 export interface Comment {
@@ -45,7 +45,7 @@ const boardSlice = createSlice({
             action: PayloadAction<{
                 columnId: string;
                 task: Task;
-                updatedTask: { title: string; description: string; comments: string };
+                updatedTask: { title: string; description: string; comments: Comment[] };
             }>
         ) => {
             const tasks = state.columns[action.payload.columnId]?.tasks

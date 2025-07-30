@@ -98,9 +98,7 @@ export default function Board() {
                                     <div className="text-sm text-neutral-400">
                                         {task.description}
                                     </div>
-                                    <div className="text-sm text-neutral-400">
-                                        {task.comments}
-                                    </div>
+                                    
                                 </div>
                             ))}
 
