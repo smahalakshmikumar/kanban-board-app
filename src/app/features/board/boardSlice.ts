@@ -1,5 +1,14 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+
+export type Comment = {
+    id: string;
+    text: string;
+    replies?: Comment[]; // Nested replies
+    createdAt?: string;
+    author?: string; // Optional: for future user system
+};
+
 export type Task = {
     id: string;
     title: string;
@@ -7,10 +16,6 @@ export type Task = {
     comments: Comment[];
 };
 
-export interface Comment {
-    id: string;
-    text: string;
-}
 
 type Column = {
     id: string;
@@ -35,7 +40,7 @@ const boardSlice = createSlice({
     initialState: defaultState,
     reducers: {
         // Hydrate state from localStorage (called by store)
-        hydrateState: (state, action: PayloadAction<BoardState>) => {
+        hydrateState: (_, action: PayloadAction<BoardState>) => {
             return action.payload;
         },
         addTask: (
@@ -126,15 +131,15 @@ const boardSlice = createSlice({
     },
 });
 
-export const { 
-    hydrateState, 
-    addTask, 
-    editTask, 
-    deleteTask, 
-    moveTask, 
-    addColumn, 
-    renameColumn, 
-    deleteColumn 
+export const {
+    hydrateState,
+    addTask,
+    editTask,
+    deleteTask,
+    moveTask,
+    addColumn,
+    renameColumn,
+    deleteColumn
 } = boardSlice.actions;
 
 export default boardSlice.reducer;

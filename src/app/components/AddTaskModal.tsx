@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { addTask, Task, editTask } from "../features/board/boardSlice";
-import { FiEdit2, FiTrash } from "react-icons/fi";
+import { NestedCommentItem } from "./CommentItem";
 
 type Comment = {
   id: string;
   text: string;
+  replies?: Comment[];
 };
 
 type Props = {
@@ -29,8 +30,6 @@ export default function AddTaskModal({
   const [description, setDescription] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingCommentText, setEditingCommentText] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -44,37 +43,97 @@ export default function AddTaskModal({
         setComments([]);
       }
       setNewComment("");
-      setEditingCommentId(null);
-      setEditingCommentText("");
     }
   }, [isOpen, taskToEdit]);
 
   const handleAddComment = () => {
     if (!newComment.trim()) return;
-    setComments((prev) => [...prev, { id: uuidv4(), text: newComment.trim() }]);
+    
+    const comment: Comment = {
+      id: uuidv4(),
+      text: newComment.trim(),
+      replies: [],
+    };
+    
+    setComments((prev) => [...prev, comment]);
     setNewComment("");
   };
 
-  const handleDeleteComment = (id: string) => {
-    setComments((prev) => prev.filter((c) => c.id !== id));
+  const handleDeleteComment = (commentId: string) => {
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
   };
 
-  const handleEditComment = (id: string) => {
-    const comment = comments.find((c) => c.id === id);
-    if (comment) {
-      setEditingCommentId(id);
-      setEditingCommentText(comment.text);
-    }
-  };
-
-  const handleSaveEditedComment = () => {
+  const handleEditComment = (commentId: string, newText: string) => {
     setComments((prev) =>
       prev.map((c) =>
-        c.id === editingCommentId ? { ...c, text: editingCommentText } : c
+        c.id === commentId ? { ...c, text: newText } : c
       )
     );
-    setEditingCommentId(null);
-    setEditingCommentText("");
+  };
+
+  const handleAddReply = (commentId: string, replyText: string) => {
+    const reply: Comment = {
+      id: uuidv4(),
+      text: replyText,
+      replies: [],
+    };
+
+    setComments((prev) =>
+      prev.map((comment) =>
+        comment.id === commentId
+          ? {
+              ...comment,
+              replies: [...(comment.replies || []), reply],
+            }
+          : comment
+      )
+    );
+  };
+
+  const handleEditReply = (commentId: string, replyId: string, newText: string) => {
+    const updateReplies = (comments: Comment[]): Comment[] => {
+      return comments.map((comment) => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            replies: comment.replies?.map((reply) =>
+              reply.id === replyId ? { ...reply, text: newText } : reply
+            ),
+          };
+        }
+        if (comment.replies) {
+          return {
+            ...comment,
+            replies: updateReplies(comment.replies),
+          };
+        }
+        return comment;
+      });
+    };
+
+    setComments((prev) => updateReplies(prev));
+  };
+
+  const handleDeleteReply = (commentId: string, replyId: string) => {
+    const removeReply = (comments: Comment[]): Comment[] => {
+      return comments.map((comment) => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            replies: comment.replies?.filter((reply) => reply.id !== replyId),
+          };
+        }
+        if (comment.replies) {
+          return {
+            ...comment,
+            replies: removeReply(comment.replies),
+          };
+        }
+        return comment;
+      });
+    };
+
+    setComments((prev) => removeReply(prev));
   };
 
   const handleAdd = () => {
@@ -100,7 +159,7 @@ export default function AddTaskModal({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-neutral-900 p-6 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-neutral-900 p-6 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-white">
           {taskToEdit ? "Edit Task" : "Add Task"}
         </h2>
@@ -108,108 +167,79 @@ export default function AddTaskModal({
         <input
           type="text"
           placeholder="Title"
-          className="w-full p-2 rounded mb-3 bg-neutral-800 text-white"
+          className="w-full p-3 rounded mb-4 bg-neutral-800 text-white"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
 
         <textarea
           placeholder="Description"
-          className="w-full p-2 rounded mb-3 bg-neutral-800 text-white"
+          className="w-full p-3 rounded mb-4 bg-neutral-800 text-white resize-none"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          rows={3}
         />
 
-        <div className="mb-3">
-          <label className="block mb-1 text-white font-semibold">Comments</label>
+        <div className="mb-4">
+          <label className="block mb-3 text-white font-semibold text-lg">
+            Comments ({comments.length})
+          </label>
 
-          <div className="space-y-2 mb-2 max-h-40 overflow-y-auto pr-1">
-            {comments.map((comment) => (
-              <div
-                key={comment.id}
-                className="bg-neutral-800 p-2 rounded flex flex-wrap justify-between items-start gap-2 break-words"
-              >
-                <div className="flex-1 min-w-0">
-                  {editingCommentId === comment.id ? (
-                    <div className="flex gap-2">
-                      <input
-                        value={editingCommentText}
-                        onChange={(e) => setEditingCommentText(e.target.value)}
-                        className="w-full p-1 rounded bg-neutral-700 text-white"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveEditedComment();
-                          if (e.key === "Escape") {
-                            setEditingCommentId(null);
-                            setEditingCommentText("");
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-white whitespace-pre-wrap break-words">
-                      {comment.text}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-1 text-sm mt-1">
-                  {editingCommentId === comment.id ? (
-                    <>
-                      <button
-                        onClick={handleSaveEditedComment}
-                        className="text-green-400 hover:text-green-600"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingCommentId(null);
-                          setEditingCommentText("");
-                        }}
-                        className="text-gray-400 hover:text-gray-300"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => handleEditComment(comment.id)}
-                        className="text-blue-400 hover:text-blue-600"
-                      >
-                        <FiEdit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="text-red-400 hover:text-red-600"
-                      >
-                        <FiTrash size={16} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
+          {/* Add New Comment */}
+          <div className="mb-4">
+            <textarea
+              placeholder="Add a comment..."
+              className="w-full p-3 rounded bg-neutral-800 text-white resize-none"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment"
-              className="flex-1 p-2 rounded bg-neutral-800 text-white"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAddComment();
+                }
+              }}
+              rows={2}
             />
-            <button
-              onClick={handleAddComment}
-              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-500"
-            >
-              Add
-            </button>
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={handleAddComment}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                disabled={!newComment.trim()}
+              >
+                Add Comment
+              </button>
+            </div>
+          </div>
+
+          {/* Comments List */}
+          <div className="max-h-96 overflow-y-auto">
+            {comments.length === 0 ? (
+              <p className="text-neutral-400 text-center py-4">
+                No comments yet. Be the first to comment!
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {comments.map((comment) => (
+                  <NestedCommentItem
+                    key={comment.id}
+                    comment={comment}
+                    onDelete={() => handleDeleteComment(comment.id)}
+                    onEdit={(newText) => handleEditComment(comment.id, newText)}
+                    onAddReply={(replyText) => handleAddReply(comment.id, replyText)}
+                    onEditReply={(replyId, newText) =>
+                      handleEditReply(comment.id, replyId, newText)
+                    }
+                    onDeleteReply={(replyId) =>
+                      handleDeleteReply(comment.id, replyId)
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3 pt-4 border-t border-neutral-700">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded bg-neutral-700 hover:bg-neutral-600 text-white"
@@ -219,6 +249,7 @@ export default function AddTaskModal({
           <button
             onClick={handleAdd}
             className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white"
+            disabled={!title.trim()}
           >
             {taskToEdit ? "Update" : "Add"}
           </button>
