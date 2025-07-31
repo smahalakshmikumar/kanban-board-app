@@ -18,11 +18,11 @@ type Column = {
     tasks: Task[];
 };
 
-type BoardState = {
+export type BoardState = {
     columns: Record<string, Column>; // dynamic keys
 };
 
-const initialState: BoardState = {
+const defaultState: BoardState = {
     columns: {
         todo: { id: "todo", name: "To Do", tasks: [] },
         inprogress: { id: "inprogress", name: "In Progress", tasks: [] },
@@ -32,8 +32,12 @@ const initialState: BoardState = {
 
 const boardSlice = createSlice({
     name: "board",
-    initialState,
+    initialState: defaultState,
     reducers: {
+        // Hydrate state from localStorage (called by store)
+        hydrateState: (state, action: PayloadAction<BoardState>) => {
+            return action.payload;
+        },
         addTask: (
             state,
             action: PayloadAction<{ columnId: string; task: Task }>
@@ -48,13 +52,14 @@ const boardSlice = createSlice({
                 updatedTask: { title: string; description: string; comments: Comment[] };
             }>
         ) => {
-            const tasks = state.columns[action.payload.columnId]?.tasks
-            const taskIndex = tasks.findIndex((t) => t.id === action.payload.task.id);
-            if (taskIndex !== -1) {
+            const tasks = state.columns[action.payload.columnId]?.tasks;
+            const taskIndex = tasks?.findIndex((t) => t.id === action.payload.task.id);
+            if (taskIndex !== undefined && taskIndex !== -1 && tasks) {
                 tasks[taskIndex] = {
                     ...tasks[taskIndex],
                     title: action.payload.updatedTask.title,
                     description: action.payload.updatedTask.description,
+                    comments: action.payload.updatedTask.comments,
                 };
             }
         },
@@ -79,13 +84,26 @@ const boardSlice = createSlice({
             }>
         ) => {
             const { fromColumnId, toColumnId, fromIndex, toIndex } = action.payload;
-            const fromTasks = [...state.columns[fromColumnId].tasks];
-            const [movedTask] = fromTasks.splice(fromIndex, 1);
-            const toTasks = [...state.columns[toColumnId].tasks];
-            toTasks.splice(toIndex, 0, movedTask);
 
-            state.columns[fromColumnId].tasks = fromTasks;
-            state.columns[toColumnId].tasks = toTasks;
+            const fromColumn = state.columns[fromColumnId];
+            const toColumn = state.columns[toColumnId];
+
+            if (!fromColumn || !toColumn) return;
+
+            // Add bounds checking for array indices
+            if (fromIndex < 0 || fromIndex >= fromColumn.tasks.length) return;
+            if (toIndex < 0 || toIndex > toColumn.tasks.length) return;
+
+            // Moving within the same column - using draft mutation consistently
+            if (fromColumnId === toColumnId) {
+                const [movedTask] = fromColumn.tasks.splice(fromIndex, 1);
+                fromColumn.tasks.splice(toIndex, 0, movedTask);
+                return;
+            }
+
+            // Moving across columns - using draft mutation
+            const [movedTask] = fromColumn.tasks.splice(fromIndex, 1);
+            toColumn.tasks.splice(toIndex, 0, movedTask);
         },
         addColumn: (state, action: PayloadAction<{ id: string; name: string }>) => {
             state.columns[action.payload.id] = {
@@ -108,6 +126,15 @@ const boardSlice = createSlice({
     },
 });
 
-export const { addTask, editTask, deleteTask, moveTask, addColumn, renameColumn, deleteColumn } =
-    boardSlice.actions;
+export const { 
+    hydrateState, 
+    addTask, 
+    editTask, 
+    deleteTask, 
+    moveTask, 
+    addColumn, 
+    renameColumn, 
+    deleteColumn 
+} = boardSlice.actions;
+
 export default boardSlice.reducer;

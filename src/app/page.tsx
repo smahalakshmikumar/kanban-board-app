@@ -1,6 +1,7 @@
-import Image from "next/image";
-import Board from "./components/Board";
+'use client'
+import dynamic from 'next/dynamic';
 
+const Board = dynamic(() => import('./components/Board'), { ssr: false });
 export default function Home() {
   return (
     <Board />
