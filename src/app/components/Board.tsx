@@ -83,7 +83,7 @@ export default function Board() {
             <div className="text-2xl font-semibold mb-4">Kanban Board</div>
             <DragDropContext onDragEnd={handleDragEnd}>
                 {/* Stack vertically on small, horizontally scroll on sm+ */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                     {Object.values(board.columns).map((column) => (
                         <Column
                             key={column.id}
