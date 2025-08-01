@@ -1,7 +1,7 @@
 import { memo } from "react";
-import { Task } from "../features/board/boardSlice";
 import { Droppable } from "@hello-pangea/dnd";
 import { TaskCard } from "./TaskCard";
+import { Task } from "../types";
 
 export const Column = memo(
   ({

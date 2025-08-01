@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { addTask, editTask } from "../features/board/boardSlice";
 import { NestedCommentItem } from "./CommentItem";
-import { UserComment, Task } from '../types/index';
+import { UserComment, Task } from "../types/index";
+import {
+  validateTaskTitle,
+  validateTaskDescription,
+  validateComment,
+  sanitizeInput,
+} from "../utils/validation";
 
 type Props = {
   isOpen: boolean;
@@ -26,6 +32,11 @@ export default function AddTaskModal({
   const [comments, setComments] = useState<UserComment[]>([]);
   const [newComment, setNewComment] = useState("");
 
+  // Validation error state
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       if (taskToEdit) {
@@ -38,15 +49,24 @@ export default function AddTaskModal({
         setComments([]);
       }
       setNewComment("");
+      // Clear errors on open
+      setTitleError(null);
+      setDescriptionError(null);
+      setCommentError(null);
     }
   }, [isOpen, taskToEdit]);
 
   const handleAddComment = () => {
-    if (!newComment.trim()) return;
+    const validation = validateComment(newComment);
+    if (!validation.isValid) {
+      setCommentError(validation.errors[0]);
+      return;
+    }
+    setCommentError(null);
 
     const comment: UserComment = {
       id: uuidv4(),
-      text: newComment.trim(),
+      text: sanitizeInput(newComment.trim()),
       replies: [],
     };
 
@@ -61,7 +81,7 @@ export default function AddTaskModal({
   const handleEditComment = (commentId: string, newText: string) => {
     setComments((prev) =>
       prev.map((c) =>
-        c.id === commentId ? { ...c, text: newText } : c
+        c.id === commentId ? { ...c, text: sanitizeInput(newText) } : c
       )
     );
   };
@@ -69,7 +89,7 @@ export default function AddTaskModal({
   const handleAddReply = (commentId: string, replyText: string) => {
     const reply: UserComment = {
       id: uuidv4(),
-      text: replyText,
+      text: sanitizeInput(replyText),
       replies: [],
     };
 
@@ -85,14 +105,20 @@ export default function AddTaskModal({
     );
   };
 
-  const handleEditReply = (commentId: string, replyId: string, newText: string) => {
+  const handleEditReply = (
+    commentId: string,
+    replyId: string,
+    newText: string
+  ) => {
     const updateReplies = (comments: UserComment[]): UserComment[] => {
       return comments.map((comment) => {
         if (comment.id === commentId) {
           return {
             ...comment,
             replies: comment.replies?.map((reply) =>
-              reply.id === replyId ? { ...reply, text: newText } : reply
+              reply.id === replyId
+                ? { ...reply, text: sanitizeInput(newText) }
+                : reply
             ),
           };
         }
@@ -132,23 +158,35 @@ export default function AddTaskModal({
   };
 
   const handleAdd = () => {
-    if (!title.trim()) return;
+    const titleValidation = validateTaskTitle(title);
+    const descriptionValidation = validateTaskDescription(description);
+
+    setTitleError(titleValidation.errors[0] || null);
+    setDescriptionError(descriptionValidation.errors[0] || null);
+
+    if (!titleValidation.isValid || !descriptionValidation.isValid) {
+      return;
+    }
 
     const newTask: Task = {
       id: taskToEdit?.id || uuidv4(),
-      title,
-      description,
+      title: sanitizeInput(title.trim()),
+      description: sanitizeInput(description.trim()),
       comments,
     };
 
     if (taskToEdit) {
-      dispatch(editTask({
-        columnId, task: taskToEdit, updatedTask: {
-          title: newTask.title,
-          description: newTask.description,
-          comments: newTask.comments,
-        },
-      }));
+      dispatch(
+        editTask({
+          columnId,
+          task: taskToEdit,
+          updatedTask: {
+            title: newTask.title,
+            description: newTask.description,
+            comments: newTask.comments,
+          },
+        })
+      );
     } else {
       dispatch(addTask({ columnId, task: newTask }));
     }
@@ -168,29 +206,45 @@ export default function AddTaskModal({
         <input
           type="text"
           placeholder="Title"
-          className="w-full p-3 rounded mb-4 bg-neutral-800 text-white"
+          className={`w-full p-3 rounded mb-1 bg-neutral-800 text-white ${titleError ? "border border-red-500" : ""
+            }`}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => {
+            const validation = validateTaskTitle(title);
+            setTitleError(validation.errors[0] || null);
+          }}
         />
+        {titleError && (
+          <p className="text-red-500 mb-2 text-sm">{titleError}</p>
+        )}
 
         <textarea
           placeholder="Description"
-          className="w-full p-3 rounded mb-4 bg-neutral-800 text-white resize-none"
+          className={`w-full p-3 rounded mb-1 bg-neutral-800 text-white resize-none ${descriptionError ? "border border-red-500" : ""
+            }`}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
+          onBlur={() => {
+            const validation = validateTaskDescription(description);
+            setDescriptionError(validation.errors[0] || null);
+          }}
         />
+        {descriptionError && (
+          <p className="text-red-500 mb-2 text-sm">{descriptionError}</p>
+        )}
 
         <div className="mb-4">
           <label className="block mb-3 text-white font-semibold text-lg">
             Comments ({comments.length})
           </label>
 
-          {/* Add New UserComment */}
           <div className="mb-4">
             <textarea
               placeholder="Add a comment..."
-              className="w-full p-3 rounded bg-neutral-800 text-white resize-none"
+              className={`w-full p-3 rounded bg-neutral-800 text-white resize-none ${commentError ? "border border-red-500" : ""
+                }`}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyDown={(e) => {
@@ -200,19 +254,25 @@ export default function AddTaskModal({
                 }
               }}
               rows={2}
+              onBlur={() => {
+                const validation = validateComment(newComment);
+                setCommentError(validation.errors[0] || null);
+              }}
             />
+            {commentError && (
+              <p className="text-red-500 mt-1 mb-2 text-sm">{commentError}</p>
+            )}
             <div className="flex justify-end mt-2">
               <button
                 onClick={handleAddComment}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                disabled={!newComment.trim()}
+                disabled={!newComment.trim() || !!commentError}
               >
                 Add Comment
               </button>
             </div>
           </div>
 
-          {/* Comments List */}
           <div className="max-h-96 overflow-y-auto">
             {comments.length === 0 ? (
               <p className="text-neutral-400 text-center py-4">
@@ -250,7 +310,7 @@ export default function AddTaskModal({
           <button
             onClick={handleAdd}
             className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white"
-            disabled={!title.trim()}
+            disabled={!title.trim() || !!titleError || !!descriptionError}
           >
             {taskToEdit ? "Update" : "Add"}
           </button>

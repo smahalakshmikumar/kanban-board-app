@@ -1,7 +1,7 @@
 import { Draggable } from "@hello-pangea/dnd";
 import { memo } from "react";
 import { FiEdit2, FiTrash } from "react-icons/fi";
-import { Task } from "../features/board/boardSlice";
+import { Task } from "../types";
 
 export const TaskCard = memo(
     ({
