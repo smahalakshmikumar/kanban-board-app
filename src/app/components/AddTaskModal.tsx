@@ -3,14 +3,9 @@
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
-import { addTask, Task, editTask } from "../features/board/boardSlice";
+import { addTask, editTask } from "../features/board/boardSlice";
 import { NestedCommentItem } from "./CommentItem";
-
-type Comment = {
-  id: string;
-  text: string;
-  replies?: Comment[];
-};
+import { UserComment, Task } from '../types/index';
 
 type Props = {
   isOpen: boolean;
@@ -28,7 +23,7 @@ export default function AddTaskModal({
   const dispatch = useDispatch();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<UserComment[]>([]);
   const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
@@ -48,13 +43,13 @@ export default function AddTaskModal({
 
   const handleAddComment = () => {
     if (!newComment.trim()) return;
-    
-    const comment: Comment = {
+
+    const comment: UserComment = {
       id: uuidv4(),
       text: newComment.trim(),
       replies: [],
     };
-    
+
     setComments((prev) => [...prev, comment]);
     setNewComment("");
   };
@@ -72,7 +67,7 @@ export default function AddTaskModal({
   };
 
   const handleAddReply = (commentId: string, replyText: string) => {
-    const reply: Comment = {
+    const reply: UserComment = {
       id: uuidv4(),
       text: replyText,
       replies: [],
@@ -82,16 +77,16 @@ export default function AddTaskModal({
       prev.map((comment) =>
         comment.id === commentId
           ? {
-              ...comment,
-              replies: [...(comment.replies || []), reply],
-            }
+            ...comment,
+            replies: [...(comment.replies || []), reply],
+          }
           : comment
       )
     );
   };
 
   const handleEditReply = (commentId: string, replyId: string, newText: string) => {
-    const updateReplies = (comments: Comment[]): Comment[] => {
+    const updateReplies = (comments: UserComment[]): UserComment[] => {
       return comments.map((comment) => {
         if (comment.id === commentId) {
           return {
@@ -115,7 +110,7 @@ export default function AddTaskModal({
   };
 
   const handleDeleteReply = (commentId: string, replyId: string) => {
-    const removeReply = (comments: Comment[]): Comment[] => {
+    const removeReply = (comments: UserComment[]): UserComment[] => {
       return comments.map((comment) => {
         if (comment.id === commentId) {
           return {
@@ -147,7 +142,13 @@ export default function AddTaskModal({
     };
 
     if (taskToEdit) {
-      dispatch(editTask({ columnId, task: taskToEdit, updatedTask: newTask }));
+      dispatch(editTask({
+        columnId, task: taskToEdit, updatedTask: {
+          title: newTask.title,
+          description: newTask.description,
+          comments: newTask.comments,
+        },
+      }));
     } else {
       dispatch(addTask({ columnId, task: newTask }));
     }
@@ -185,7 +186,7 @@ export default function AddTaskModal({
             Comments ({comments.length})
           </label>
 
-          {/* Add New Comment */}
+          {/* Add New UserComment */}
           <div className="mb-4">
             <textarea
               placeholder="Add a comment..."

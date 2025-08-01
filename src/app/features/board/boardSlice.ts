@@ -1,27 +1,5 @@
+import { Column, Task, UserComment } from "@/app/types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-
-export type Comment = {
-    id: string;
-    text: string;
-    replies?: Comment[]; // Nested replies
-    createdAt?: string;
-    author?: string; // Optional: for future user system
-};
-
-export type Task = {
-    id: string;
-    title: string;
-    description: string;
-    comments: Comment[];
-};
-
-
-type Column = {
-    id: string;
-    name: string;
-    tasks: Task[];
-};
 
 export type BoardState = {
     columns: Record<string, Column>; // dynamic keys
@@ -54,7 +32,7 @@ const boardSlice = createSlice({
             action: PayloadAction<{
                 columnId: string;
                 task: Task;
-                updatedTask: { title: string; description: string; comments: Comment[] };
+                updatedTask: { title: string; description: string; comments: UserComment[] };
             }>
         ) => {
             const tasks = state.columns[action.payload.columnId]?.tasks;

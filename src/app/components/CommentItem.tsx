@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Comment } from "../features/board/boardSlice";
+import { UserComment } from "../types";
 
 interface NestedCommentItemProps {
-    comment: Comment;
+    comment: UserComment;
     onDelete: () => void;
     onEdit: (newText: string) => void;
     onAddReply: (replyText: string) => void;
@@ -62,7 +62,7 @@ export const NestedCommentItem = ({
 
     return (
         <div className="mb-3" >
-            {/* Main Comment */}
+            {/* Main UserComment */}
             <div className="bg-neutral-800 p-3 rounded-lg border-l-2 border-neutral-600">
                 {isEditing ? (
                     <div className="space-y-2">

@@ -9,12 +9,12 @@ import {
     deleteTask,
     moveTask,
     renameColumn,
-    Task,
 } from "../features/board/boardSlice";
 import { v4 as uuidv4 } from "uuid";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import AddTaskModal from "./AddTaskModal";
 import { Column } from "./Column";
+import { Task } from "../types";
 
 export default function Board() {
     const dispatch = useDispatch();
@@ -82,7 +82,6 @@ export default function Board() {
         <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4">
             <div className="text-2xl font-semibold mb-4">Kanban Board</div>
             <DragDropContext onDragEnd={handleDragEnd}>
-                {/* Stack vertically on small, horizontally scroll on sm+ */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                     {Object.values(board.columns).map((column) => (
                         <Column
