@@ -77,14 +77,14 @@ const boardSlice = createSlice({
             if (fromIndex < 0 || fromIndex >= fromColumn.tasks.length) return;
             if (toIndex < 0 || toIndex > toColumn.tasks.length) return;
 
-            // Moving within the same column - using draft mutation consistently
+            // Moving within the same column
             if (fromColumnId === toColumnId) {
                 const [movedTask] = fromColumn.tasks.splice(fromIndex, 1);
                 fromColumn.tasks.splice(toIndex, 0, movedTask);
                 return;
             }
 
-            // Moving across columns - using draft mutation
+            // Moving across columns
             const [movedTask] = fromColumn.tasks.splice(fromIndex, 1);
             toColumn.tasks.splice(toIndex, 0, movedTask);
         },

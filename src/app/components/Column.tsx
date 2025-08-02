@@ -29,7 +29,8 @@ export const Column = memo(
         <button
           className="text-red-400 ml-2 text-sm"
           onClick={() =>
-            window.confirm("Are you sure to delete column?") && onDelete(column.id)
+            window.confirm("Are you sure to delete column?") &&
+            onDelete(column.id)
           }
         >
           ✕

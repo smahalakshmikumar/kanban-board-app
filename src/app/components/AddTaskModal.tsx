@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
-import { v4 as uuidv4 } from "uuid";
-import { addTask, editTask } from "../features/board/boardSlice";
-import { NestedCommentItem } from "./CommentItem";
-import { UserComment, Task } from "../types/index";
-import {
-  validateTaskTitle,
-  validateTaskDescription,
-  validateComment,
-  sanitizeInput,
-} from "../utils/validation";
+import { useEffect } from "react";
+import { Task } from "../types/index";
+import { useTaskForm } from "../hooks/useTaskForm";
+import { useComments } from "../hooks/useComments";
+import { TaskFormFields } from "./TaskFormFields";
+import { CommentSection } from "./CommentSection";
 
 type Props = {
   isOpen: boolean;
@@ -26,173 +20,19 @@ export default function AddTaskModal({
   columnId,
   taskToEdit,
 }: Props) {
-  const dispatch = useDispatch();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [comments, setComments] = useState<UserComment[]>([]);
-  const [newComment, setNewComment] = useState("");
+  const taskForm = useTaskForm({ isOpen, columnId, taskToEdit, onClose });
+  const commentHooks = useComments();
 
-  // Validation error state
-  const [titleError, setTitleError] = useState<string | null>(null);
-  const [descriptionError, setDescriptionError] = useState<string | null>(null);
-  const [commentError, setCommentError] = useState<string | null>(null);
-
+  // Sync comments between task form and comment hooks
   useEffect(() => {
     if (isOpen) {
-      if (taskToEdit) {
-        setTitle(taskToEdit.title);
-        setDescription(taskToEdit.description);
-        setComments(taskToEdit.comments || []);
-      } else {
-        setTitle("");
-        setDescription("");
-        setComments([]);
-      }
-      setNewComment("");
-      // Clear errors on open
-      setTitleError(null);
-      setDescriptionError(null);
-      setCommentError(null);
+      commentHooks.setComments(taskForm.comments);
     }
-  }, [isOpen, taskToEdit]);
+  }, [isOpen, taskForm.comments]);
 
-  const handleAddComment = () => {
-    const validation = validateComment(newComment);
-    if (!validation.isValid) {
-      setCommentError(validation.errors[0]);
-      return;
-    }
-    setCommentError(null);
-
-    const comment: UserComment = {
-      id: uuidv4(),
-      text: sanitizeInput(newComment.trim()),
-      replies: [],
-    };
-
-    setComments((prev) => [...prev, comment]);
-    setNewComment("");
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
-  };
-
-  const handleEditComment = (commentId: string, newText: string) => {
-    setComments((prev) =>
-      prev.map((c) =>
-        c.id === commentId ? { ...c, text: sanitizeInput(newText) } : c
-      )
-    );
-  };
-
-  const handleAddReply = (commentId: string, replyText: string) => {
-    const reply: UserComment = {
-      id: uuidv4(),
-      text: sanitizeInput(replyText),
-      replies: [],
-    };
-
-    setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === commentId
-          ? {
-            ...comment,
-            replies: [...(comment.replies || []), reply],
-          }
-          : comment
-      )
-    );
-  };
-
-  const handleEditReply = (
-    commentId: string,
-    replyId: string,
-    newText: string
-  ) => {
-    const updateReplies = (comments: UserComment[]): UserComment[] => {
-      return comments.map((comment) => {
-        if (comment.id === commentId) {
-          return {
-            ...comment,
-            replies: comment.replies?.map((reply) =>
-              reply.id === replyId
-                ? { ...reply, text: sanitizeInput(newText) }
-                : reply
-            ),
-          };
-        }
-        if (comment.replies) {
-          return {
-            ...comment,
-            replies: updateReplies(comment.replies),
-          };
-        }
-        return comment;
-      });
-    };
-
-    setComments((prev) => updateReplies(prev));
-  };
-
-  const handleDeleteReply = (commentId: string, replyId: string) => {
-    const removeReply = (comments: UserComment[]): UserComment[] => {
-      return comments.map((comment) => {
-        if (comment.id === commentId) {
-          return {
-            ...comment,
-            replies: comment.replies?.filter((reply) => reply.id !== replyId),
-          };
-        }
-        if (comment.replies) {
-          return {
-            ...comment,
-            replies: removeReply(comment.replies),
-          };
-        }
-        return comment;
-      });
-    };
-
-    setComments((prev) => removeReply(prev));
-  };
-
-  const handleAdd = () => {
-    const titleValidation = validateTaskTitle(title);
-    const descriptionValidation = validateTaskDescription(description);
-
-    setTitleError(titleValidation.errors[0] || null);
-    setDescriptionError(descriptionValidation.errors[0] || null);
-
-    if (!titleValidation.isValid || !descriptionValidation.isValid) {
-      return;
-    }
-
-    const newTask: Task = {
-      id: taskToEdit?.id || uuidv4(),
-      title: sanitizeInput(title.trim()),
-      description: sanitizeInput(description.trim()),
-      comments,
-    };
-
-    if (taskToEdit) {
-      dispatch(
-        editTask({
-          columnId,
-          task: taskToEdit,
-          updatedTask: {
-            title: newTask.title,
-            description: newTask.description,
-            comments: newTask.comments,
-          },
-        })
-      );
-    } else {
-      dispatch(addTask({ columnId, task: newTask }));
-    }
-
-    onClose();
-  };
+  useEffect(() => {
+    taskForm.setComments(commentHooks.comments);
+  }, [commentHooks.comments]);
 
   if (!isOpen) return null;
 
@@ -203,102 +43,30 @@ export default function AddTaskModal({
           {taskToEdit ? "Edit Task" : "Add Task"}
         </h2>
 
-        <input
-          type="text"
-          placeholder="Title"
-          className={`w-full p-3 rounded mb-1 bg-neutral-800 text-white ${titleError ? "border border-red-500" : ""
-            }`}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={() => {
-            const validation = validateTaskTitle(title);
-            setTitleError(validation.errors[0] || null);
-          }}
+        <TaskFormFields
+          title={taskForm.title}
+          setTitle={taskForm.setTitle}
+          description={taskForm.description}
+          setDescription={taskForm.setDescription}
+          titleError={taskForm.titleError}
+          descriptionError={taskForm.descriptionError}
+          validateTitle={taskForm.validateTitle}
+          validateDescription={taskForm.validateDescription}
         />
-        {titleError && (
-          <p className="text-red-500 mb-2 text-sm">{titleError}</p>
-        )}
 
-        <textarea
-          placeholder="Description"
-          className={`w-full p-3 rounded mb-1 bg-neutral-800 text-white resize-none ${descriptionError ? "border border-red-500" : ""
-            }`}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-          onBlur={() => {
-            const validation = validateTaskDescription(description);
-            setDescriptionError(validation.errors[0] || null);
-          }}
+        <CommentSection
+          comments={commentHooks.comments}
+          newComment={commentHooks.newComment}
+          setNewComment={commentHooks.setNewComment}
+          commentError={commentHooks.commentError}
+          handleAddComment={commentHooks.handleAddComment}
+          handleDeleteComment={commentHooks.handleDeleteComment}
+          handleEditComment={commentHooks.handleEditComment}
+          handleAddReply={commentHooks.handleAddReply}
+          handleEditReply={commentHooks.handleEditReply}
+          handleDeleteReply={commentHooks.handleDeleteReply}
+          validateNewComment={commentHooks.validateNewComment}
         />
-        {descriptionError && (
-          <p className="text-red-500 mb-2 text-sm">{descriptionError}</p>
-        )}
-
-        <div className="mb-4">
-          <label className="block mb-3 text-white font-semibold text-lg">
-            Comments ({comments.length})
-          </label>
-
-          <div className="mb-4">
-            <textarea
-              placeholder="Add a comment..."
-              className={`w-full p-3 rounded bg-neutral-800 text-white resize-none ${commentError ? "border border-red-500" : ""
-                }`}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAddComment();
-                }
-              }}
-              rows={2}
-              onBlur={() => {
-                const validation = validateComment(newComment);
-                setCommentError(validation.errors[0] || null);
-              }}
-            />
-            {commentError && (
-              <p className="text-red-500 mt-1 mb-2 text-sm">{commentError}</p>
-            )}
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={handleAddComment}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                disabled={!newComment.trim() || !!commentError}
-              >
-                Add Comment
-              </button>
-            </div>
-          </div>
-
-          <div className="max-h-96 overflow-y-auto">
-            {comments.length === 0 ? (
-              <p className="text-neutral-400 text-center py-4">
-                No comments yet. Be the first to comment!
-              </p>
-            ) : (
-              <div className="space-y-1">
-                {comments.map((comment) => (
-                  <NestedCommentItem
-                    key={comment.id}
-                    comment={comment}
-                    onDelete={() => handleDeleteComment(comment.id)}
-                    onEdit={(newText) => handleEditComment(comment.id, newText)}
-                    onAddReply={(replyText) => handleAddReply(comment.id, replyText)}
-                    onEditReply={(replyId, newText) =>
-                      handleEditReply(comment.id, replyId, newText)
-                    }
-                    onDeleteReply={(replyId) =>
-                      handleDeleteReply(comment.id, replyId)
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-neutral-700">
           <button
@@ -308,9 +76,9 @@ export default function AddTaskModal({
             Cancel
           </button>
           <button
-            onClick={handleAdd}
+            onClick={taskForm.handleSubmit}
             className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white"
-            disabled={!title.trim() || !!titleError || !!descriptionError}
+            disabled={!taskForm.isValid}
           >
             {taskToEdit ? "Update" : "Add"}
           </button>
