@@ -14,18 +14,13 @@ interface UseTaskFormProps {
     columnId: string;
     taskToEdit?: Task;
     onClose: () => void;
+    comments: UserComment[]; // Receive comments from outside
 }
 
-export function useTaskForm({
-    isOpen,
-    columnId,
-    taskToEdit,
-    onClose,
-}: UseTaskFormProps) {
+export function useTaskForm({ isOpen, columnId, taskToEdit, onClose, comments }: UseTaskFormProps) {
     const dispatch = useDispatch();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [comments, setComments] = useState<UserComment[]>([]);
 
     // Validation error state
     const [titleError, setTitleError] = useState<string | null>(null);
@@ -36,11 +31,9 @@ export function useTaskForm({
             if (taskToEdit) {
                 setTitle(taskToEdit.title);
                 setDescription(taskToEdit.description);
-                setComments(taskToEdit.comments || []);
             } else {
                 setTitle("");
                 setDescription("");
-                setComments([]);
             }
             // Clear errors on open
             setTitleError(null);
@@ -101,8 +94,6 @@ export function useTaskForm({
         setTitle,
         description,
         setDescription,
-        comments,
-        setComments,
         titleError,
         descriptionError,
         validateTitle,

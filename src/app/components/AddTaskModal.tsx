@@ -20,19 +20,25 @@ export default function AddTaskModal({
   columnId,
   taskToEdit,
 }: Props) {
-  const taskForm = useTaskForm({ isOpen, columnId, taskToEdit, onClose });
-  const commentHooks = useComments();
+  // Initialize comments from task if editing
+  const initialComments = taskToEdit?.comments || [];
+  const commentHooks = useComments(initialComments);
 
-  // Sync comments between task form and comment hooks
+  const taskForm = useTaskForm({
+    isOpen,
+    columnId,
+    taskToEdit,
+    onClose,
+    comments: commentHooks.comments, // Pass comments to task form
+  });
+
+  // Reset comments when modal opens with different task
   useEffect(() => {
     if (isOpen) {
-      commentHooks.setComments(taskForm.comments);
+      const commentsToSet = taskToEdit?.comments || [];
+      commentHooks.setComments(commentsToSet);
     }
-  }, [isOpen, taskForm.comments]);
-
-  useEffect(() => {
-    taskForm.setComments(commentHooks.comments);
-  }, [commentHooks.comments]);
+  }, [isOpen, taskToEdit?.id]);
 
   if (!isOpen) return null;
 
