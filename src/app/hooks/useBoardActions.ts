@@ -9,7 +9,6 @@ import {
     renameColumn,
 } from "../features/board/boardSlice";
 import { DropResult } from "@hello-pangea/dnd";
-import { Task } from "../types";
 import { sanitizeInput } from "../utils/validation";
 
 export function useBoardActions() {

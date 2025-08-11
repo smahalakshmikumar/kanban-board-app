@@ -53,7 +53,7 @@ export const NestedCommentItem = ({
     onDeleteReply(replyId);
   };
 
-  const handleNestedReplyAdd = (parentReplyId: string, replyText: string) => {
+  const handleNestedReplyAdd = (replyText: string) => {
     // For nested replies, we'll add them as replies to the specific comment
     onAddReply(replyText);
   };
@@ -187,7 +187,7 @@ export const NestedCommentItem = ({
               onDelete={() => handleReplyDelete(reply.id)}
               onEdit={(newText) => handleReplyEdit(reply.id, newText)}
               onAddReply={(replyText) =>
-                handleNestedReplyAdd(reply.id, replyText)
+                handleNestedReplyAdd(replyText)
               }
               onEditReply={onEditReply}
               onDeleteReply={onDeleteReply}

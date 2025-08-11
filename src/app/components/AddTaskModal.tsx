@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Task } from "../types/index";
 import { useTaskForm } from "../hooks/useTaskForm";
 import { useComments } from "../hooks/useComments";
@@ -20,6 +20,7 @@ export default function AddTaskModal({
   columnId,
   taskToEdit,
 }: Props) {
+
   // Initialize comments from task if editing
   const initialComments = taskToEdit?.comments || [];
   const commentHooks = useComments(initialComments);
@@ -32,7 +33,7 @@ export default function AddTaskModal({
     comments: commentHooks.comments, // Pass comments to task form
   });
 
-  // Reset comments when modal opens with different task
+  // Reset comments when modal opens with a different task
   useEffect(() => {
     if (isOpen) {
       const commentsToSet = taskToEdit?.comments || [];
@@ -40,12 +41,39 @@ export default function AddTaskModal({
     }
   }, [isOpen, taskToEdit?.id]);
 
+  // Allow closing the modal with ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-neutral-900 p-6 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4 text-white">
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="task-modal-title"
+    >
+      <div
+        className="bg-neutral-900 p-6 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
+        <h2
+          id="task-modal-title"
+          className="text-xl font-bold mb-4 text-white"
+        >
           {taskToEdit ? "Edit Task" : "Add Task"}
         </h2>
 
@@ -74,7 +102,7 @@ export default function AddTaskModal({
           validateNewComment={commentHooks.validateNewComment}
         />
 
-        <div className="flex justify-end gap-3 pt-4 border-t border-neutral-700">
+        <div className="flex justify-end gap-3 pt-4 border-t border-neutral-700 mt-4">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded bg-neutral-700 hover:bg-neutral-600 text-white"

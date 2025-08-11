@@ -2,8 +2,6 @@ export type UserComment = {
   id: string;
   text: string;
   replies?: UserComment[];
-  createdAt?: string;
-  author?: string;
 };
 
 export type Task = {

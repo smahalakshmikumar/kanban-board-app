@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction } from "react";
+
 export const ValidationRules = {
   TASK_TITLE_MIN_LENGTH: 1,
   TASK_TITLE_MAX_LENGTH: 100,
@@ -15,7 +17,7 @@ export interface ValidationResult {
 }
 
 export const validateTaskTitle = (title: string): ValidationResult => {
-  const errors: string[] = [];
+  const errors: string[] = []; //to extract type
   const trimmed = title.trim();
 
   if (trimmed.length < ValidationRules.TASK_TITLE_MIN_LENGTH) {
@@ -75,4 +77,12 @@ export const sanitizeInput = (input: string): string => {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;')
     .replace(/\//g, '&#x2F;');
+};
+
+
+
+export const validateItems = (value: string, validate: (value: string) => ValidationResult, setError: Dispatch<SetStateAction<string | null>>): boolean => {
+  const { isValid, errors } = validate(value)
+  setError(errors[0] || null)
+  return isValid;
 };
