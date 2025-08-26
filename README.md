@@ -5,7 +5,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Project Overview
 
-This project was assigned with the following **core requirements**:
+This project has following:
 
 - Dynamic columns with add, rename, and delete capabilities  
 - Task cards with add, edit, delete functionalities  
@@ -13,9 +13,8 @@ This project was assigned with the following **core requirements**:
 - Drag-and-drop support for moving and reordering tasks  
 - Data persistence across page reloads via `localStorage`  
 
-I have **fully implemented all these core features** as specified.
 
-Additionally, I have also worked on some **bonus features** to further enhance the application:
+Additionally, I have also added **some other features** to further enhance the application:
 
 - Nested Reddit-like replies in the comments section  
 - Responsive design for seamless use across different screen sizes  
